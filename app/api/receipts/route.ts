@@ -1,5 +1,20 @@
 import { env } from "cloudflare:workers";
 import { NextRequest } from "next/server";
+import { ReceiptUploadError, storeReceipt } from "../../receipt-upload";
 
-const allowed=new Set(["image/jpeg","image/png","image/webp","application/pdf"]);
-export async function POST(request:NextRequest){const user=request.headers.get("oai-authenticated-user-id")||(process.env.NODE_ENV!=="production"?"local-preview":null);if(!user)return Response.json({error:"Sign in required"},{status:401});const data=await request.formData();const file=data.get("file");if(!(file instanceof File))return Response.json({error:"Choose a receipt file"},{status:400});if(!allowed.has(file.type))return Response.json({error:"Use JPG, PNG, WEBP, or PDF"},{status:415});if(file.size>10*1024*1024)return Response.json({error:"Receipt must be under 10 MB"},{status:413});const extension=file.name.split(".").pop()?.replace(/[^a-z0-9]/gi,"").toLowerCase()||"bin";const key=`receipts/${user}/${crypto.randomUUID()}.${extension}`;await env.BUCKET!.put(key,file.stream(),{httpMetadata:{contentType:file.type},customMetadata:{ownerId:user,originalName:file.name}});return Response.json({key},{status:201});}
+export async function POST(request: NextRequest) {
+  const user = request.headers.get("oai-authenticated-user-id")
+    || request.headers.get("oai-authenticated-user-email")
+    || (process.env.NODE_ENV !== "production" ? "local-preview" : null);
+  if (!user) return Response.json({ error: "Sign in required" }, { status: 401 });
+
+  try {
+    const stored = await storeReceipt(env.BUCKET!, user, await request.json());
+    return Response.json({ key: stored.key }, { status: 201 });
+  } catch (error) {
+    if (error instanceof ReceiptUploadError) {
+      return Response.json({ error: error.message }, { status: error.status });
+    }
+    throw error;
+  }
+}
