@@ -6,6 +6,6 @@ export async function GET(request:NextRequest){
   if(!user)return Response.json({error:"Sign in required"},{status:401});
   let database="down"; let storage="down";
   try { await env.DB!.prepare("SELECT 1 AS ok").first(); database="online"; } catch {}
-  try { await env.BUCKET!.head("system-health-probe"); storage="online"; } catch { if(env.BUCKET) storage="online"; }
+  try { await env.BUCKET!.list({limit:1}); storage="online"; } catch {}
   return Response.json({database,storage,identity:"online",source:"github",hosting:"chatgpt-sites",checked_at:new Date().toISOString()});
 }

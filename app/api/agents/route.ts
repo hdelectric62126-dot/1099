@@ -20,7 +20,7 @@ export async function POST(request:NextRequest){
   const [review,receipts,jobs,income,expenses,mileage]=await Promise.all([
     db.prepare("SELECT COUNT(*) AS count FROM expenses WHERE owner_id=? AND review_status!='ready'").bind(user).first<CountRow>(),
     db.prepare("SELECT COUNT(*) AS count FROM expenses WHERE owner_id=? AND receipt_key IS NULL").bind(user).first<CountRow>(),
-    db.prepare("SELECT COUNT(*) AS count FROM jobs WHERE owner_id=? AND status!='Complete'").bind(user).first<CountRow>(),
+    db.prepare("SELECT COUNT(*) AS count FROM jobs WHERE owner_id=? AND status!='Complete' AND phase!='Complete'").bind(user).first<CountRow>(),
     db.prepare("SELECT COALESCE(SUM(amount),0) AS total FROM income WHERE owner_id=?").bind(user).first<SumRow>(),
     db.prepare("SELECT COALESCE(SUM(amount),0) AS total FROM expenses WHERE owner_id=?").bind(user).first<SumRow>(),
     db.prepare("SELECT COUNT(*) AS count FROM mileage WHERE owner_id=?").bind(user).first<CountRow>(),

@@ -9,7 +9,7 @@ function error(message:string,status=400){return Response.json({error:message},{
 
 export async function GET(request:NextRequest){
   const user=owner(request); if(!user)return error("Sign in required",401);
-  const result=await env.DB!.prepare("SELECT * FROM agent_tasks WHERE owner_id=? ORDER BY CASE priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 ELSE 2 END, id DESC LIMIT 200").bind(user).all();
+  const result=await env.DB!.prepare("SELECT * FROM agent_tasks WHERE owner_id=? ORDER BY CASE status WHEN 'working' THEN 0 WHEN 'queued' THEN 1 ELSE 2 END, CASE priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 ELSE 2 END, id DESC LIMIT 200").bind(user).all();
   return Response.json(result.results);
 }
 
